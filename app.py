@@ -14,18 +14,27 @@ Apartados del ejercicio:
         - K-Nearest Neighbors (KNN)
         - Árbol de Decisión
         - Regresión Logística
+     (se guarda además la gráfica del árbol en arbol_decision.png)
   e) Predicción de un único elemento: se localiza una observación en la que
      los modelos DISIEREN y se razona el porqué.
   f) Conclusiones (para exponer en clase).
 
-Ejecutar:  python clasificacion_pinguinos.py
+Ejecutar:  python app.py
 """
 
 import pandas as pd
+import matplotlib
+
+# "Agg" guarda la figura en PNG sin necesidad de pantalla (entornos sin
+# display / en servidores). Si quieres abrir la ventana interactiva,
+# cambia a "TkAgg" y ejecuta plt.show().
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 
@@ -117,6 +126,35 @@ def entrenar_y_evaluar(X_train, X_test, y_train, y_test):
         print(classification_report(y_test, y_pred, digits=3, zero_division=0))
 
     return entrenados
+
+
+# ---------------------------------------------------------------------------
+# Gráfica del árbol de decisión con matplotlib
+# ---------------------------------------------------------------------------
+def graficar_arbol(modelo, feature_names, clases, ruta: str = "arbol_decision.png"):
+    """Dibuja el árbol entrenado y lo guarda en un PNG."""
+    fig, ax = plt.subplots(figsize=(20, 10))
+    plot_tree(
+        modelo,
+        feature_names=list(feature_names),
+        class_names=list(clases),
+        filled=True,        # nodos coloreados según la clase mayoritaria
+        rounded=True,       # nodos con esquinas redondeadas
+        fontsize=9,
+        impurity=True,      # muestra el criterio Gini de cada nodo
+        proportion=False,   # muestra los nº de muestras reales
+        ax=ax,
+    )
+    ax.set_title(
+        "Árbol de decisión - Clasificación de especies de pingüino\n"
+        "(Palmer Archipelago, Antarctica)",
+        fontsize=14,
+    )
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=150)
+    plt.close(fig)
+    print(f"[d] Gráfica del árbol de decisión guardada en '{ruta}'")
+    return ruta
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +280,13 @@ def main():
     X, y = preparar(df)
     X_train_s, X_test_s, y_train, y_test, scaler = separar_y_estandarizar(X, y)
     modelos = entrenar_y_evaluar(X_train_s, X_test_s, y_train, y_test)
+
+    # Gráfica del árbol de decisión (matplotlib -> arbol_decision.png)
+    graficar_arbol(
+        modelos["Árbol de Decisión"],
+        feature_names=X.columns,
+        clases=sorted(y.unique()),
+    )
 
     # Accuracies para las conclusiones
     resultados = {
