@@ -3,13 +3,14 @@ Predice la especie de un pingüino (Adelie, Chinstrap o Gentoo) a partir de
 sus medidas introducidas por consola.
 """
 
+import matplotlib.pyplot as plt
 import pandas as pd
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 
 SEED = 42
 
@@ -21,8 +22,41 @@ def cargar_datos(ruta: str = "penguins_size.csv") -> pd.DataFrame:
     return df.dropna().reset_index(drop=True)
 
 
+def guardar_arbol(
+    modelo_arbol: DecisionTreeClassifier,
+    columnas,
+    clases,
+    ruta_salida: str = "arbol_decision.png",
+):
+    """Guarda una imagen PNG con el árbol de decisión entrenado."""
+    plt.figure(figsize=(20, 10))
+    plot_tree(
+        modelo_arbol,
+        feature_names=list(columnas),
+        class_names=list(clases),
+        filled=True,
+        rounded=True,
+        fontsize=9,
+    )
+    plt.tight_layout()
+    plt.savefig(ruta_salida, dpi=300)
+    plt.close()
+    print(f"Árbol de decisión guardado en: {ruta_salida}")
+
+
+def mostrar_comparativa(modelos: dict, X_train_s, y_train, X_test_s, y_test):
+    """Muestra la precisión (accuracy) de cada modelo en train y en test."""
+    print("\n--- Comparativa de precisión (accuracy) ---")
+    print(f"{'Modelo':22s} | {'Train':>8s} | {'Test':>8s}")
+    print("-" * 46)
+    for nombre, modelo in modelos.items():
+        acc_train = accuracy_score(y_train, modelo.predict(X_train_s))
+        acc_test = accuracy_score(y_test, modelo.predict(X_test_s))
+        print(f"{nombre:22s} | {acc_train:7.1%} | {acc_test:7.1%}")
+
+
 def entrenar(df: pd.DataFrame):
-    """Entrena los 3 modelos y devuelve (modelos, scaler, columnas)."""
+    """Entrena los 3 modelos, muestra precisión, guarda el PNG y devuelve artefactos."""
     X = pd.get_dummies(
         df.drop(columns="species"),
         columns=["island", "sex"],
@@ -30,7 +64,7 @@ def entrenar(df: pd.DataFrame):
     )
     y = df["species"]
 
-    X_train, _, y_train, _ = train_test_split(
+    X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=SEED, stratify=y
     )
 
@@ -38,6 +72,7 @@ def entrenar(df: pd.DataFrame):
     # y regresión logística, que trabajan con distancias / coeficientes)
     scaler = StandardScaler()
     X_train_s = scaler.fit_transform(X_train)
+    X_test_s = scaler.transform(X_test)
 
     modelos = {
         "KNN (k=5)": KNeighborsClassifier(n_neighbors=5),
@@ -46,6 +81,14 @@ def entrenar(df: pd.DataFrame):
     }
     for modelo in modelos.values():
         modelo.fit(X_train_s, y_train)
+
+    mostrar_comparativa(modelos, X_train_s, y_train, X_test_s, y_test)
+    guardar_arbol(
+        modelos["Árbol de Decisión"],
+        X.columns,
+        modelos["Árbol de Decisión"].classes_,
+    )
+    print()
 
     return modelos, scaler, X.columns
 
