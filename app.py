@@ -32,7 +32,7 @@ def entrenar(df: pd.DataFrame):
     )
     y = df["species"]
 
-    X_train, _, y_train, _ = train_test_split( # Que es "_"
+    X_train, _, y_train, _ = train_test_split(
         X, y, test_size=0.3, random_state=SEED, stratify=y
     )
 
