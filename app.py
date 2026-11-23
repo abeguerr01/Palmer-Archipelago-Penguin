@@ -1,8 +1,6 @@
 """
 Predice la especie de un pingüino (Adelie, Chinstrap o Gentoo) a partir de
 sus medidas introducidas por consola.
-
-Ejecutar:  python app.py
 """
 
 import matplotlib.pyplot as plt
